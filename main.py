@@ -4,7 +4,7 @@ import subprocess
 import shlex
 
 class Shodanish:
-    def __init__(self, options:str = "-T4 -v"):
+    def __init__(self, options: str = "-T4 -v"):
         if options is None:
             self.options = ""
         else:
@@ -25,7 +25,7 @@ class Shodanish:
                 lines = list()
                 # here is the same story, add a new couple lines if needed
                 # ip part
-                self.last_ip: ipaddress.IPv4Address = ipaddress.ip_address("0.0.0.0")
+                self.last_ip: ipaddress.IPv4Address = ipaddress.ip_address("1.0.0.0")
                 lines.append(f"last_ip {self.last_ip}\n")
                 f.writelines(lines)
 
@@ -36,51 +36,39 @@ class Shodanish:
         process = subprocess.run(shlex.split(command))
 
     def start_scans(self):
-        bits = [int(i) for i in str(self.last_ip).split('.')]
-        try:
-            for bit1 in range(bits[0], 256):
-                for bit2 in range(bits[1], 256):
-                    for bit3 in range(bits[2], 256):
-                        for bit4 in range(bits[3], 256):
-                            current_ip = ipaddress.ip_address(f"{bit1}.{bit2}.{bit3}.{bit4}")
-                            self.do_scan(current_ip)
-        except KeyboardInterrupt:
-            print("Stopping the scan")
-            self.last_ip = current_ip
-            with open(self.header_filename, 'r') as f:
-                lines = f.readlines()
-                data = dict()
-                for line in lines:
-                    line_parts = line.split()
-                    data[line_parts[0]] = line_parts[1]
-            lines.clear()
-            with open(self.header_filename, 'w') as f:
-                for key in data:
-                    if key == "last_ip":
-                        data[key] = str(current_ip)
-                    lines.append(f"{key} {data[key]}\n")
-                f.writelines(lines)
+        current_ip: ipaddress.IPv4Address = self.last_ip
+        while current_ip != ipaddress.ip_address('255.255.255.255'):
+            try:
+                self.do_scan(current_ip)
+            except KeyboardInterrupt:
+                print("Stopping the scan")
+                self.last_ip = current_ip
+                with open(self.header_filename, 'r') as f:
+                    lines = f.readlines()
+                    data = dict()
+                    for line in lines:
+                        line_parts = line.split()
+                        data[line_parts[0]] = line_parts[1]
+                lines.clear()
+                with open(self.header_filename, 'w') as f:
+                    for key in data:
+                        if key == "last_ip":
+                            data[key] = str(current_ip)
+                        lines.append(f"{key} {data[key]}\n")
+                    f.writelines(lines)
+            current_ip = self.next_ip(current_ip)
+
+    @staticmethod
+    def next_ip(ip: ipaddress.IPv4Address):
+        ip += 1
+        while not ip.is_global:
+            ip += 1
+        return ip
 
 
 if __name__ == '__main__':
     scanner = Shodanish()
     scanner.start_scans()
 
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
 if __name__ == '__main__':
     scanner = Shodanish()
-
